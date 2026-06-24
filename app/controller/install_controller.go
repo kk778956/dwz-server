@@ -24,6 +24,7 @@ const (
 
 type installPageData struct {
 	SiteName       string
+	LogoURL        string
 	ICPNumber      string
 	PoliceNumber   string
 	Domain         string
