@@ -21,6 +21,7 @@ type CreateShortLinkRequest struct {
 	UTMContent   string               `json:"utm_content"`
 	Notes        string               `json:"notes"`
 	Security     *LinkSecurityRequest `json:"security"`
+	FindIfExists bool                 `json:"find_if_exists"` // 已存在相同目标URL时返回既有短链（仅域名策略为by_request时生效；带custom_code时忽略）
 }
 
 // UpdateShortLinkRequest 更新短网址请求
@@ -110,6 +111,7 @@ type ShortLinkResponse struct {
 	RoutingSummary  string        `json:"routing_summary"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`
+	IsExisting      bool          `json:"is_existing"` // true表示本次创建命中查重，返回的是既有短链
 }
 
 // ShortLinkListRequest 短网址列表请求
@@ -150,8 +152,9 @@ type ShortLinkStatisticResponse struct {
 
 // BatchCreateShortLinkRequest 批量创建短网址请求
 type BatchCreateShortLinkRequest struct {
-	URLs   []string `json:"urls" binding:"required,min=1,max=100"`
-	Domain string   `json:"domain"`
+	URLs         []string `json:"urls" binding:"required,min=1,max=100"`
+	Domain       string   `json:"domain"`
+	FindIfExists bool     `json:"find_if_exists"` // 同CreateShortLinkRequest.FindIfExists，逐条透传
 }
 
 // BatchCreateShortLinkResponse 批量创建短网址响应
@@ -184,6 +187,7 @@ type DomainResponse struct {
 	XorSecret            string    `json:"xor_secret"`             // XOR密钥（字符串格式）
 	XorRot               int       `json:"xor_rot"`                // 旋转位数
 	DefaultStartNumber   uint64    `json:"default_start_number"`   // 默认开始数字
+	DuplicatePolicy      string    `json:"duplicate_policy"`       // 重复URL策略 deny/allow/by_request
 	Description          string    `json:"description"`
 	CreatedAt            time.Time `json:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at"`
@@ -205,6 +209,7 @@ type DomainRequest struct {
 	XorSecret            *string `json:"xor_secret" example:"11817553067636239985"`                         // XOR密钥（字符串格式），不填写时随机生成
 	XorRot               *int    `json:"xor_rot" binding:"omitempty,min=1,max=63" example:"17"`             // 旋转位数 (1-63)，不填写时随机生成
 	DefaultStartNumber   uint64  `json:"default_start_number" example:"0"`                                  // 默认开始数字，0表示从1开始
+	DuplicatePolicy      *string `json:"duplicate_policy" binding:"omitempty,oneof=deny allow by_request"`  // 重复URL策略，使用指针以区分未传与显式设置
 	Description          string  `json:"description" example:"主要短链域名"`                                      // 描述
 }
 

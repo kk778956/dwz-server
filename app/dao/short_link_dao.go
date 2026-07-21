@@ -32,6 +32,22 @@ func (d *ShortLinkDao) FindByShortCode(domain, shortCode string) (*model.ShortLi
 	return &shortLink, nil
 }
 
+// FindActiveByURLHash 在工作区+域名范围内按URL哈希查找可复用的短网址（用于创建时查重）
+// 仅返回未删除、激活、未过期、非自定义短码的记录；original_url 二次比对防哈希碰撞；多条命中取最新一条
+func (d *ShortLinkDao) FindActiveByURLHash(workspaceID, domainID uint64, urlHash, originalURL string) (*model.ShortLink, error) {
+	var shortLink model.ShortLink
+	err := d.helper.GetDatabase().
+		Where("workspace_id = ? AND domain_id = ? AND url_hash = ? AND original_url = ? AND is_custom_code = ? AND is_active = ? AND deleted_at IS NULL",
+			workspaceID, domainID, urlHash, originalURL, false, true).
+		Where("expire_at IS NULL OR expire_at > ?", time.Now()).
+		Order("id DESC").
+		First(&shortLink).Error
+	if err != nil {
+		return nil, err
+	}
+	return &shortLink, nil
+}
+
 // FindByID 根据ID查找短网址
 func (d *ShortLinkDao) FindByID(id uint64) (*model.ShortLink, error) {
 	var shortLink model.ShortLink

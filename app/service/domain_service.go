@@ -93,6 +93,7 @@ func (s *DomainService) CreateDomainInWorkspace(req *dto.DomainRequest, workspac
 		XorSecret:            xorSecretUint64,
 		XorRot:               xorRotInt,
 		DefaultStartNumber:   &req.DefaultStartNumber,
+		DuplicatePolicy:      req.DuplicatePolicy,
 	}
 
 	if err := s.domainDao.Create(domain); err != nil {
@@ -181,6 +182,10 @@ func (s *DomainService) UpdateDomainInWorkspace(id uint64, req *dto.DomainReques
 	domain.RandomSuffixLength = req.RandomSuffixLength
 	domain.EnableChecksum = req.EnableChecksum
 	domain.EnableAntiRed = req.EnableAntiRed
+	// 未传时保持原值，避免旧客户端不带该字段导致策略被重置
+	if req.DuplicatePolicy != nil {
+		domain.DuplicatePolicy = req.DuplicatePolicy
+	}
 
 	if err := s.domainDao.Update(domain); err != nil {
 		return nil, err
@@ -319,6 +324,7 @@ func (s *DomainService) modelToResponse(domain *model.Domain) *dto.DomainRespons
 		XorSecret:            xorSecret,
 		XorRot:               xorRot,
 		DefaultStartNumber:   defaultStartNumber,
+		DuplicatePolicy:      domain.GetDuplicatePolicy(),
 		Description:          domain.Description,
 		CreatedAt:            domain.CreatedAt,
 		UpdatedAt:            domain.UpdatedAt,
