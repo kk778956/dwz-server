@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -115,6 +117,27 @@ func (s *ShortLinkService) CreateShortLinkInWorkspace(req *dto.CreateShortLinkRe
 		return nil, errors.New("跳转状态码仅支持 301、302、307、308")
 	}
 
+	// 计算目标URL(UTM合并后)的哈希，无论是否查重都写入，供按URL查重使用
+	urlHash := hashOriginalURL(finalURL)
+
+	// 按域名重复URL策略决定是否查重复用：deny强制查重；by_request由请求参数决定；allow永远新建
+	// 带自定义短码的请求语义上要求一条专属新链接，豁免查重
+	// 并发创建同一URL时 check-then-insert 为尽力而为，不保证绝对无重复
+	policy := domainInfo.GetDuplicatePolicy()
+	shouldDedupe := policy == model.DuplicatePolicyDeny ||
+		(policy == model.DuplicatePolicyByRequest && req.FindIfExists)
+	if shouldDedupe && req.CustomCode == "" {
+		existing, findErr := s.shortLinkDao.FindActiveByURLHash(workspaceID, domainInfo.ID, urlHash, finalURL)
+		if findErr == nil {
+			response := s.modelToResponse(existing)
+			response.IsExisting = true
+			return response, nil
+		}
+		if !errors.Is(findErr, gorm.ErrRecordNotFound) {
+			return nil, findErr
+		}
+	}
+
 	var actor *uint64
 	if userID > 0 {
 		actor = &userID
@@ -128,6 +151,7 @@ func (s *ShortLinkService) CreateShortLinkInWorkspace(req *dto.CreateShortLinkRe
 		DomainID:     domainInfo.ID,
 		Protocol:     domainInfo.Protocol,
 		OriginalURL:  finalURL,
+		URLHash:      urlHash,
 		FallbackURL:  req.FallbackURL,
 		RedirectCode: redirectCode,
 		Title:        req.Title,
@@ -324,6 +348,7 @@ func (s *ShortLinkService) UpdateShortLinkInWorkspace(id uint64, req *dto.Update
 		return nil, errors.New("目标 URL 命中安全规则: " + result.Reason)
 	}
 	shortLink.OriginalURL = finalURL
+	shortLink.URLHash = hashOriginalURL(finalURL)
 
 	shortLink.ExpireAt = req.ExpireAt
 
@@ -772,8 +797,9 @@ func (s *ShortLinkService) BatchCreateShortLinksInWorkspace(req *dto.BatchCreate
 
 	for _, originalURL := range req.URLs {
 		createReq := &dto.CreateShortLinkRequest{
-			OriginalURL: originalURL,
-			Domain:      domain,
+			OriginalURL:  originalURL,
+			Domain:       domain,
+			FindIfExists: req.FindIfExists,
 		}
 
 		response, err := s.CreateShortLinkInWorkspace(createReq, creatorIP, workspaceID, userID)
@@ -791,6 +817,12 @@ func (s *ShortLinkService) BatchCreateShortLinksInWorkspace(req *dto.BatchCreate
 		Success: success,
 		Failed:  failed,
 	}, nil
+}
+
+// hashOriginalURL 计算目标URL(UTM合并后)的SHA-256哈希hex，用于按URL查重
+func hashOriginalURL(finalURL string) string {
+	sum := sha256.Sum256([]byte(finalURL))
+	return hex.EncodeToString(sum[:])
 }
 
 func uniqueShortLinkIDs(ids []uint64) []uint64 {

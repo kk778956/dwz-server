@@ -11,20 +11,21 @@ import (
 // ShortLink 短网址模型
 type ShortLink struct {
 	ID           uint64         `gorm:"primaryKey" json:"id"`
-	WorkspaceID  uint64         `gorm:"not null;default:1;index" json:"workspace_id"`
+	WorkspaceID  uint64         `gorm:"not null;default:1;index;index:idx_short_links_ws_domain_urlhash,priority:1" json:"workspace_id"`
 	CampaignID   *uint64        `gorm:"index" json:"campaign_id"`
-	IssuerNumber *uint64        `gorm:"index" json:"issuer_number"`                       // 发号器分配的号码
-	DomainID     uint64         `gorm:"not null;index" json:"domain_id"`                  // 关联域名表ID
-	Protocol     string         `gorm:"size:10;default:'https';not null" json:"protocol"` // 协议头 http或https
-	Domain       string         `gorm:"size:100;not null;index;" json:"domain"`           // 域名
-	OriginalURL  string         `gorm:"size:2000;not null" json:"original_url"`           // 原始URL
-	FallbackURL  string         `gorm:"size:2000" json:"fallback_url"`                    // 高级路由未命中时的兜底URL
-	RedirectCode int            `gorm:"not null;default:302" json:"redirect_code"`        // 跳转状态码
-	Title        string         `gorm:"size:255" json:"title"`                            // 网页标题
-	IsCustomCode bool           `gorm:"default:false;" json:"is_custom_code"`             // 是否使用自定义短代码
-	ShortCode    string         `gorm:"size:20;index" json:"short_code"`                  // 短代码(可自定义)
-	ClickCount   int64          `gorm:"default:0" json:"click_count"`                     // 点击次数
-	CreatorIP    string         `gorm:"size:45" json:"creator_ip"`                        // 创建者IP
+	IssuerNumber *uint64        `gorm:"index" json:"issuer_number"`                                                         // 发号器分配的号码
+	DomainID     uint64         `gorm:"not null;index;index:idx_short_links_ws_domain_urlhash,priority:2" json:"domain_id"` // 关联域名表ID
+	Protocol     string         `gorm:"size:10;default:'https';not null" json:"protocol"`                                   // 协议头 http或https
+	Domain       string         `gorm:"size:100;not null;index;" json:"domain"`                                             // 域名
+	OriginalURL  string         `gorm:"size:2000;not null" json:"original_url"`                                             // 原始URL
+	URLHash      string         `gorm:"size:64;default:'';index:idx_short_links_ws_domain_urlhash,priority:3" json:"-"`     // 原始URL(UTM合并后)的SHA-256，用于按URL查重
+	FallbackURL  string         `gorm:"size:2000" json:"fallback_url"`                                                      // 高级路由未命中时的兜底URL
+	RedirectCode int            `gorm:"not null;default:302" json:"redirect_code"`                                          // 跳转状态码
+	Title        string         `gorm:"size:255" json:"title"`                                                              // 网页标题
+	IsCustomCode bool           `gorm:"default:false;" json:"is_custom_code"`                                               // 是否使用自定义短代码
+	ShortCode    string         `gorm:"size:20;index" json:"short_code"`                                                    // 短代码(可自定义)
+	ClickCount   int64          `gorm:"default:0" json:"click_count"`                                                       // 点击次数
+	CreatorIP    string         `gorm:"size:45" json:"creator_ip"`                                                          // 创建者IP
 	CreatedBy    *uint64        `gorm:"index" json:"created_by"`
 	UpdatedBy    *uint64        `json:"updated_by"`
 	Description  string         `gorm:"size:500" json:"description"` // 描述

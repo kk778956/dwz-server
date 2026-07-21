@@ -1,708 +1,333 @@
-# 木雷短网址 - 企业级短链接服务平台
+<p align="center">
+  <img src="docs/brand/logo-lockup.svg" alt="木雷短网址" height="72">
+</p>
 
-[![Go Version](https://img.shields.io/badge/Go-1.25.0-blue.svg)](https://golang.org)
-[![Gin Framework](https://img.shields.io/badge/Gin-v1.10.1-green.svg)](https://github.com/gin-gonic/gin)
-[![GORM](https://img.shields.io/badge/Gorm-v1.30.3-orange.svg)](https://gorm.io)
+<h1 align="center">木雷短网址</h1>
 
-> 🚀 木雷坞开源的一个功能完善、高性能的企业级短链接服务平台，支持多域名、AB测试、用户管理、实时统计等功能。
+<p align="center">
+  面向团队与私有化部署的短链接管理平台
+</p>
 
-### ✨ 新特性：独立部署模式
-- 🎯 **零依赖部署**: 支持SQLite + 内存缓存，无需安装数据库和Redis
-- ⚡ **快速启动**: 单文件部署，下载即用
-- 💡 **新手友好**: 适合个人用户和小型项目快速上手
-- 🔧 **灵活选择**: 支持独立模式和完整模式，满足不同场景需求
+<p align="center">
+  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white" alt="Go 1.26"></a>
+  <a href="https://github.com/gin-gonic/gin"><img src="https://img.shields.io/badge/Gin-1.12.0-008ECF" alt="Gin 1.12.0"></a>
+  <a href="https://gorm.io/"><img src="https://img.shields.io/badge/GORM-1.31.1-00A1EA" alt="GORM 1.31.1"></a>
+</p>
 
-### 开源地址
+木雷短网址（dwz-server）集短链生成、多域名、访问策略、A/B 测试、营销归因和统计分析于一体。服务端使用 Go 开发，管理端基于 Vue 3 与 Ant Design Vue，并随二进制或 Docker 镜像一同分发。
 
-1. 后端
-   - CNB [https://cnb.cool/mliev/dwz/dwz-server](https://cnb.cool/mliev/dwz/dwz-server)
-   - Gitee [https://gitee.com/muleiwu/dwz-server](https://gitee.com/muleiwu/dwz-server)
-   - GitHub [https://github.com/muleiwu/dwz-server](https://github.com/muleiwu/dwz-server)
-2. 界面
-   - CNB [https://cnb.cool/mliev/open/dwz-admin-webui](https://cnb.cool/mliev/open/dwz-admin-webui)
-   - Gitee [https://gitee.com/muleiwu/dwz-admin-webui](https://gitee.com/muleiwu/dwz-admin-webui)
-   - GitHub[https://github.com/muleiwu/dwz-admin-webui](https://github.com/muleiwu/dwz-admin-webui)
-3. 文档地址
-   - https://mdoc.cc/mliev/dwz
+项目既可以使用 SQLite、内存缓存和本地发号器单机运行，也可以接入 MySQL/PostgreSQL 与 Redis，用于生产环境和多实例部署。
 
-###  📞 加群获取帮助
+> **部署与首次使用的关键前置**：创建正式短链前，必须先配置公开短域名的 DNS、证书和反向代理。程序使用应用实际收到的 HTTP `Host + 短码` 精确查找记录；Host 被改成内部地址、容器名或错误端口时，后台和健康检查可能正常，但公开短链仍会返回 404。详见[首次使用说明](https://mdoc.cc/mliev/dwz/v2.22.3/391)和[宝塔面板安装教程](https://mdoc.cc/mliev/dwz/v2.22.3/335)。
 
-|                                     QQ                                      |                                 企业微信                                       |
-|:---------------------------------------------------------------------------:|:--------------------------------------------------------------------------:|
-| ![wechat_qr_code.png](https://static.1ms.run/dwz/image/httpsn3.inklmKc.png) | ![wechat_qr_code.png](https://static.1ms.run/dwz/image/wechat_qr_code.png) |
-|       QQ群号：1021660914 <br /> [点击链接加入群聊【木雷坞开源家】](https://n3.ink/lmKc)        |                                扫描上方二维码加入微信群                                |
+> 使用、修改或部署本项目之前，请先阅读 [LICENSE](LICENSE)。本项目允许在协议范围内免费用于商业或非商业用途，但不是标准开源许可证；必须保留版权标识，也不得重新分发派生版本。
 
+## 功能概览
 
+| 模块 | 当前能力 |
+| --- | --- |
+| 短链管理 | 创建、编辑、删除、批量操作、自定义短码、过期时间、启停控制、301/302/307/308 跳转、重复 URL 策略 |
+| 域名管理 | 多域名、HTTP/HTTPS、参数透传、短码生成策略、微信/QQ 防红引导、站点备案信息 |
+| 高级路由 | 按国家/省市、设备、浏览器、操作系统、语言、Referer、查询参数分流；支持优先级、条件组、兜底地址和规则测试 |
+| 链接安全 | 访问密码、访问时间窗、最大访问次数、IP allowlist/blocklist、Bot 策略、URL 规则扫描、安全事件和滥用举报 |
+| A/B 测试 | 多变体、平均/权重分流、会话一致性、点击与转化统计、签名反馈 Token、幂等事件回传 |
+| 数据分析 | 点击明细、独立 IP、地域、来源、时间、设备、浏览器、OS、Bot、UTM 与路由维度分析，支持 CSV 导出 |
+| 营销管理 | Campaign、Tag、UTM Builder、活动聚合报表 |
+| 工作区 | 多工作区切换、成员管理，以及 owner/admin/member/viewer 四级角色 |
+| 用户与认证 | 用户管理、JWT 登录、API Bearer Token、请求签名认证、OIDC 登录与账号绑定、操作日志 |
+| 品牌与前端 | 系统品牌名称与 Logo、公开页品牌展示、管理后台、前端二维码样式生成与下载 |
+| 运维 | 首次安装向导、数据库迁移、健康检查、嵌入式静态资源与模板、前台/守护进程运行 |
 
-## ✨ 功能特性
+二维码目前由管理端直接生成和下载，尚未作为服务端资源持久化；功能边界和后续计划可查看 [功能路线图](docs/feature-roadmap.md)。
 
-### 🔗 核心功能
-- **短链接生成**: 支持自定义短码，自动生成唯一标识
-- **多域名支持**: 支持配置多个短链接域名，灵活管理
-- **链接管理**: 完整的CRUD操作，支持批量管理
-- **过期管理**: 支持设置链接过期时间，自动失效
-- **链接状态**: 支持启用/禁用链接状态控制
+## 界面预览
 
-### 🧪 AB测试系统
-- **多版本测试**: 为同一短链接创建多个目标URL版本
-- **智能分流**: 支持平均分配、权重分配等流量分配策略
-- **会话一致性**: 同一用户在测试期间始终访问相同版本
-- **结果反馈**: 目标页可通过签名 token 回传注册、下单等转化结果
-- **实时统计**: 实时收集各版本的点击数据、转化率和转化价值
-- **测试管理**: 完整的测试生命周期管理
+### 工作台与全球访问热力
 
-### 👥 用户管理
-- **用户认证**: 支持用户注册、登录、密码管理
-- **Token管理**: 支持API Token和登录Token双重认证
-- **权限控制**: 基于用户的访问权限管理
-- **操作日志**: 详细记录用户操作，支持审计追踪
+![工作台概览与全球访问热力图](https://static.1ms.run/mdoc/uploads/2026/07/21/a8ef0c61-d5ac-460d-9709-aee55315be35.png)
 
-### 📊 统计分析
-- **点击统计**: 实时记录点击数据，包括IP、地理位置、设备信息
-- **数据分析**: 提供多维度统计分析，包括地理分布、时间分布等
-- **AB测试分析**: 专门的AB测试数据分析和转化率统计
-- **导出功能**: 支持点击明细 CSV 导出，便于进一步分析
+### 短链接管理
 
-### 🛡️ 安全与监控
-- **操作日志**: 自动记录所有操作，支持敏感信息脱敏
-- **健康检查**: 提供服务健康状态监控
-- **性能监控**: 高并发场景下的性能优化
-- **安全防护**: 防止恶意访问和数据泄露
+![短链接管理列表](https://static.1ms.run/mdoc/uploads/2026/07/21/0a0148ac-9d1b-4356-b312-10113fc4b613.png)
 
-### 🚀 部署模式
-- **独立模式**: SQLite + 内存缓存，零依赖部署，适合个人和小型项目
-- **完整模式**: MySQL/PostgreSQL + Redis，适合生产环境和高并发场景
-- **灵活切换**: 支持运行时配置切换，满足不同阶段需求
+### 多维统计分析
 
-## 🏗️ 技术架构
+![短链接多维统计分析](https://static.1ms.run/mdoc/uploads/2026/07/21/c3b5fb50-1622-411d-be53-246c97ea06a7.png)
 
-### 技术栈
-- **语言**: Go 1.23+
-- **Web框架**: Gin
-- **数据库**: MySQL/PostgreSQL/SQLite (支持独立部署)
-- **缓存**: Redis/内存缓存 (支持独立部署)
-- **ORM**: GORM
-- **配置管理**: Viper
-- **日志**: Zap
-- **HTTP客户端**: go-resty
+### A/B 测试
 
-### 架构设计
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Client    │    │   Mobile App    │    │   API Client    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-       │                       │                         │
-       └───────────────────────┼─────────────────────────┘
-                               │
-     ┌─────────────────────────────────────────────────────┐
-     │                   Load Balancer                     │
-     └─────────────────────────────────────────────────────┘
-                               │
-     ┌─────────────────────────────────────────────────────┐
-     │                  DWZ Server                         │
-     │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
-     │  │ Controller  │  │ Middleware  │  │   Router    │  │
-     │  └─────────────┘  └─────────────┘  └─────────────┘  │
-     │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
-     │  │  Service    │  │     DAO     │  │   Model     │  │
-     │  └─────────────┘  └─────────────┘  └─────────────┘  │
-     └─────────────────────────────────────────────────────┘
-                               │
-     ┌─────────────────────────────────────────────────────┐
-     │                     Data Layer                      │
-     │       ┌─────────────┐         ┌─────────────┐       │
-     │       │   MySQL     │         │    Cache    │       │
-     │       │ PostgreSQL  │         │    Redis    │       │
-     │       │   SQLite    │         │    Memory   │       │
-     │       └─────────────┘         └─────────────┘       │
-     └─────────────────────────────────────────────────────┘
-```
+![A/B 测试变体统计](https://static.1ms.run/mdoc/uploads/2026/07/21/7270a465-c634-4578-b388-b601c45c1e9b.png)
 
-### 部署模式
+## 部署模式
 
-#### 完整模式（生产环境）
-- 使用 MySQL/PostgreSQL 作为主数据库
-- 使用 Redis 作为缓存和ID生成器
-- 支持高并发和集群部署
+| 场景 | 数据库 | 缓存 | ID 发号器 | 说明 |
+| --- | --- | --- | --- | --- |
+| 轻量单机 | SQLite | memory/local | local | 无外部服务，适合个人、演示和小规模使用 |
+| 标准生产 | MySQL 或 PostgreSQL | Redis | Redis | 适合持续运行、高并发和多实例部署 |
 
-#### 独立模式（轻量部署）
-- 使用 SQLite 作为数据库，无需独立数据库服务
-- 使用内存缓存，无需 Redis 服务
-- 单文件部署，适合小型项目和个人使用
+多实例部署必须让各实例共用数据库，并建议使用 Redis 发号器，避免本地计数器在实例之间产生冲突。
 
-### 分层架构
-- **Controller层**: 处理HTTP请求，参数验证，调用Service
-- **Service层**: 业务逻辑处理，事务管理  
-- **DAO层**: 数据访问，数据库操作
-- **Model层**: 数据模型定义
-- **Middleware层**: 认证、日志、CORS等中间件
+## Docker 快速开始
 
-
-## 🔧 快速安装
-
-### 部署方式选择
-
-#### 方式一：独立部署（推荐新手）
-无需安装数据库和Redis，使用SQLite和内存缓存，适合个人使用和小型项目。
-
-#### 方式二：完整部署
-使用MySQL/PostgreSQL和Redis，适合生产环境和高并发场景。
-
----
-
-## 🚀 独立部署（无需外部依赖）
-
-### 1. 下载可执行文件
-```bash
-# 创建项目目录
-mkdir mliev-dwz
-cd mliev-dwz
-
-# 下载最新版本（以Linux x86_64为例）
-wget https://github.com/muleiwu/dwz-server/releases/latest/download/dwz-server_Linux_x86_64.tar.gz
-tar -xzf dwz-server_Linux_x86_64.tar.gz
-chmod +x dwz-server
-```
-
-### 2. 启动服务
-```bash
-# 启动服务
-./dwz-server
-
-# 后台运行
-nohup ./dwz-server > dwz.log 2>&1 &
-```
-
-### 3. 访问系统
-打开浏览器访问 `http://localhost:8080` 进行初始化配置。
-
----
-
-## 🐳 Docker 部署
-
-### 1. 创建项目目录
-```bash
-mkdir mliev-dwz
-cd mliev-dwz
-```
-
-### 2. 创建 Docker Compose 文件
-
-
-启动后，后台地址是 `http://{ip}:{端口}/admin/`
-
-#### 创建 `docker-compose.yml` 文件：
-
+创建一个空目录，并写入以下 `compose.yaml`：
 
 ```yaml
-version: '3.8'
-
 services:
   dwz-server:
-    container_name: dwz-server
     image: docker.cnb.cool/mliev/dwz/dwz-server:latest
-    restart: always
+    container_name: dwz-server
+    restart: unless-stopped
     ports:
       - "8080:8080"
-    volumes:
-      - "./config/:/app/config/"
     environment:
-      - TZ=Asia/Shanghai
-      - GIN_MODE=release
+      TZ: Asia/Shanghai
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
 ```
 
-### 3. 创建配置目录
+启动服务：
+
 ```bash
-mkdir -p config
-chmod 666 ./config
+mkdir -p config data logs
+docker compose up -d
+docker compose logs -f dwz-server
 ```
 
-### 4. 启动服务
+浏览器打开 <http://localhost:8080>。未安装时服务会自动跳转至 `/install/index`，按向导完成以下配置：
+
+1. 选择 SQLite，或填写已有的 MySQL/PostgreSQL 连接。
+2. 单机模式选择内存缓存与本地发号器；使用 Redis 时填写 Redis 连接。
+3. 创建首个系统管理员。
+
+安装完成后会生成 `config/config.yaml` 和 `config/install.lock`，执行数据库迁移并自动重启服务。上述三个挂载目录应持续保留；其中 `data` 还用于保存上传的品牌 Logo。
+
+健康检查：
+
 ```bash
-# 后台启动所有服务
-docker-compose up -d
-
-# 或者前台启动（可以看到日志）
-docker-compose up
+curl http://localhost:8080/health/simple
 ```
 
-### 5. 验证安装
+升级前请备份配置目录、数据目录和外部数据库，然后执行：
+
 ```bash
-# 检查服务状态
-docker-compose ps
-
-# 查看服务日志
-docker-compose logs -f
+docker compose pull
+docker compose up -d
 ```
 
-### 6. 页面配置
+使用宝塔面板部署时，请参阅 [宝塔面板安装教程](https://mdoc.cc/mliev/dwz/v2.22.3/335)。教程保留应用商店与容器编排两种入口，并说明域名代理、HTTPS 和数据库/Redis 的安全边界。
 
-打开 `http://{您的IP}:8080` 进行继续配置（请注意8080端口放开）
+## 使用发布版二进制
 
-> **提示**：独立模式无需配置数据库和Redis，系统会自动使用SQLite和内存缓存。
+从 [GitHub Releases](https://github.com/muleiwu/dwz-server/releases) 下载与操作系统、CPU 架构匹配的压缩包，解压到一个可写的固定目录：
 
-## 🚀 系统预览
+```bash
+chmod +x dwz-server
+./dwz-server start
+```
 
-![Snipaste_2025-07-16_01-30-57.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-30-57.png)
+首次启动后访问 <http://localhost:8080> 完成安装。轻量模式不需要预先安装数据库或 Redis。
 
-![Snipaste_2025-07-16_01-32-13.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-32-13.png)
+进程管理命令：
 
-![Snipaste_2025-07-16_01-32-59.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-32-59.png)
+```bash
+# 守护进程模式启动
+./dwz-server start --daemon
 
-![Snipaste_2025-07-16_01-33-14.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-33-14.png)
+# 查看、重启和停止守护进程
+./dwz-server status
+./dwz-server restart
+./dwz-server stop
+```
 
-![Snipaste_2025-07-16_01-33-45.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-33-45.png)
+修改配置后建议重启进程。前台运行时使用 `Ctrl+C` 停止，再重新执行 `./dwz-server start`。
 
-![Snipaste_2025-07-16_01-33-56.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-33-56.png)
-
-![Snipaste_2025-07-16_01-34-36.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-34-36.png)
-
-![Snipaste_2025-07-16_01-34-59.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-34-59.png)
-
-![Snipaste_2025-07-16_01-35-19.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-35-19.png)
-
-![Snipaste_2025-07-16_01-35-56.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-35-56.png)
-
-![Snipaste_2025-07-16_01-36-07.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-36-07.png)
-
-![Snipaste_2025-07-16_01-36-18.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-36-18.png)
-
-![Snipaste_2025-07-16_01-36-35.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-36-35.png)
-
-![Snipaste_2025-07-16_01-36-59.png](https://static.1ms.run/dwz/image/Snipaste_2025-07-16_01-36-59.png)
-
-
-## 🚀 二次开发
+## 从源码构建
 
 ### 环境要求
-- Go 1.23+
-- Node.js 22+ / pnpm 9.0+（前端构建）
-- MySQL 5.7+ 或 PostgreSQL 9.6+（可选，支持 SQLite）
-- Redis 6.0+（可选，支持内存缓存）
 
-### 手动打包
+- Go 1.26+
+- Node.js 22+（前端工作区最低要求为 20.10）
+- pnpm 10.10.0，推荐通过 Corepack 管理
+- Git（管理端位于 `admin-webui` 子模块）
 
-详细的手动打包教程请参考：[手动打包教程](docs/manual-build.md)
+### 构建前端与后端
 
-快速构建命令：
 ```bash
-# 1. 构建前端
-cd admin-webui && pnpm install && pnpm run build:antd --filter=\!./docs && cd ..
-
-# 2. 复制前端产物
-mkdir -p static/admin && cp -r admin-webui/apps/web-antd/dist/* static/admin/
-
-# 3. 构建后端
-CGO_ENABLED=0 go build -ldflags="-s -w" -o dwz-server main.go
-```
-
-### 开发步骤
-
-1. **克隆项目**
-```bash
-git clone https://github.com/your-org/dwz-server.git
+git clone --recurse-submodules https://github.com/muleiwu/dwz-server.git
 cd dwz-server
-```
 
-2. **安装依赖**
-```bash
+corepack enable
+cd admin-webui
+pnpm install
+pnpm run build:antd --filter='!./docs'
+cd ..
+
+mkdir -p static/admin
+cp -R admin-webui/apps/web-antd/dist/. static/admin/
+
 go mod download
+CGO_ENABLED=0 go build -o dwz-server .
+./dwz-server start
 ```
 
-3. **配置数据库**
+`templates`、`static` 和数据库迁移会通过 `go:embed` 编译进可执行文件，因此生产部署不需要额外复制这些目录。
+
+更多平台构建和 GoReleaser 用法见 [手动构建文档](docs/manual-build.md)。也可以直接在仓库根目录构建镜像：
+
 ```bash
-# 复制配置文件
-cp config.yaml.example config.yaml
-
-# 编辑配置文件，设置数据库连接信息
-vim config.yaml
+docker build -t dwz-server:local .
 ```
 
-4. **初始化数据库**
+### 本地开发与测试
+
+仅运行当前已构建的管理端资源和后端：
+
 ```bash
-# 创建数据库表结构
-# 执行项目中的数据库迁移脚本
+go run . start
 ```
 
-### 迁移文件命名规范
+修改管理端时，可在另一个终端启动 Vite：
 
-数据表创建和结构变更需要按 CE/EE 的最终 schema 保持一致：同一逻辑表在 CE 和 EE 两边必须使用同名表、同名字段和同名索引，避免后续开发出现字段脑裂。品牌相关表虽然沿用历史命名 `ee_system_brandings`、`ee_workspace_brandings`、`ee_domain_brandings`，但字段结构在 CE 和 EE 两边保持完全一致；版本功能差异只通过代码、路由、前端编译开关和权限控制区分。
+```bash
+cd admin-webui
+corepack enable
+pnpm install
+pnpm dev:antd
+```
 
-已发布版本之后，不允许向迁移目录补加低于当前已发布版本号的新迁移文件。Goose 会把这类文件判定为当前数据库版本之前缺失的迁移，导致升级失败。需要补齐 CE/EE schema 时，应新增一个更高版本号的自愈迁移，通过 `CREATE TABLE IF NOT EXISTS`、兼容字段补齐等方式保证最终结构一致。
+运行后端测试：
 
-新迁移文件使用时间顺序友好的命名格式，方便后续合并迁移时按文件名字典序排序：
+```bash
+go test ./...
+```
+
+## 配置说明
+
+首次安装后，主配置文件位于 `config/config.yaml`。仓库根目录的 [config.yaml.example](config.yaml.example) 展示了可配置项；环境变量会覆盖同名 YAML 配置。
+
+常用配置如下：
+
+| YAML 键 | 环境变量 | 说明 |
+| --- | --- | --- |
+| `http.addr` | `HTTP_ADDR` | HTTP 监听地址，默认 `:8080` |
+| `http.mode` | `HTTP_MODE` | `debug`、`release` 或 `test` |
+| `database.driver` | `DATABASE_DRIVER` | `sqlite`、`mysql` 或 `postgresql` |
+| `database.filepath` | `DATABASE_FILEPATH` | SQLite 文件路径 |
+| `database.host` | `DATABASE_HOST` | MySQL/PostgreSQL 主机 |
+| `database.port` | `DATABASE_PORT` | 数据库端口 |
+| `database.dbname` | `DATABASE_DBNAME` | 数据库名 |
+| `database.username` | `DATABASE_USERNAME` | 数据库用户名 |
+| `database.password` | `DATABASE_PASSWORD` | 数据库密码 |
+| `redis.host` | `REDIS_HOST` | Redis 主机 |
+| `redis.port` | `REDIS_PORT` | Redis 端口 |
+| `redis.password` | `REDIS_PASSWORD` | Redis 密码 |
+| `redis.db` | `REDIS_DB` | Redis DB 编号 |
+| `cache.driver` | `CACHE_DRIVER` | `memory`/`local`、`redis` 或 `none` |
+| `id_generator.driver` | `ID_GENERATOR_DRIVER` | `local` 或 `redis` |
+| `jwt.secret` | `JWT_SECRET` | JWT 签名密钥，生产环境必须妥善保管 |
+| `jwt.expire_hours` | `JWT_EXPIRE_HOURS` | 登录 Token 有效时长 |
+
+若使用 Docker，容器内数据库主机应填写 Compose 服务名，而不是 `localhost`。例如数据库服务名为 `mysql`，则填写 `mysql`。
+
+静态资源与模板支持 `embed`、`disk` 两种模式，开发时的热更新配置见 [静态资源与模板说明](docs/static-templates.md)。
+
+## 访问入口
+
+| 地址 | 用途 | 是否需要认证 |
+| --- | --- | --- |
+| `/admin/` | 管理后台 | 登录后使用 |
+| `/<short-code>` | 短链跳转 | 否，可能受链接安全策略限制 |
+| `/preview/<short-code>` | 短链预览 | 否 |
+| `/health` | 详细健康信息 | 否 |
+| `/health/simple` | 轻量健康检查 | 否 |
+| `/api/v1/auth/login` | 账号密码登录 | 否 |
+| `/api/v1/public/*` | 品牌、密码访问、举报、A/B 反馈等公开接口 | 否 |
+| `/api/v1/*` | 业务与管理 API | 是 |
+
+受保护 API 支持三种认证方式：
+
+- 登录 JWT：`Authorization: Bearer <token>`
+- API Bearer Token：`Authorization: Bearer <token>`
+- 请求签名：`X-App-Id`、`X-Signature`、`X-Timestamp`、`X-Nonce`
+
+切换工作区时通过 `X-Workspace-Id` 请求头传递工作区 ID；不传时使用当前用户可访问的默认工作区。
+
+完整接口和认证规则：
+
+- [API 参考](docs/api/API_REFERENCE.md)
+- [Bearer Token 认证](docs/api/API_BEARER_AUTH.md)
+- [请求签名认证](docs/api/API_SIGNATURE_AUTH.md)
+
+## 项目结构
 
 ```text
-YYYYMMDDHHmmssRR_<随机数字>_<迁移名>.sql
+dwz-server/
+├── app/
+│   ├── controller/        # HTTP 控制器
+│   ├── service/           # 业务逻辑
+│   ├── dao/               # GORM 数据访问
+│   ├── model/             # 数据模型
+│   ├── dto/               # 请求与响应对象
+│   └── middleware/        # 安装、认证、工作区、日志、CORS
+├── config/autoload/       # 配置项、路由和中间件注册
+├── pkg/service/           # 数据库、缓存、Redis、迁移、发号器等基础服务
+├── migrations/            # MySQL/PostgreSQL/SQLite 的 Goose 迁移
+├── templates/             # 公开页、错误页和安装页模板
+├── static/admin/          # 构建后嵌入的管理端资源
+├── admin-webui/           # Vue 3 管理端子模块
+├── docs/                  # API、构建、品牌和设计文档
+└── main.go                # 应用入口与嵌入资源声明
 ```
 
-示例：
+请求主要沿以下分层流转：
 
 ```text
-2026060311000050_1234_add_workspace_branding.sql
+HTTP 请求
+  → 全局中间件（安装检查、短码分发、CORS）
+  → API 中间件（操作日志、认证、工作区）
+  → Controller → Service → DAO → Database
+                         ↘ Cache / Redis / ID Generator / IP Region
 ```
 
-同一迁移需要在 `mysql`、`postgresql`、`sqlite` 三个方言目录中保持同名；迁移名使用小写 `snake_case`。
+数据库结构使用 Goose 管理，并为 MySQL、PostgreSQL、SQLite 维护同名迁移。升级或新增迁移前请阅读 [迁移说明](MIGRATION.md)。
 
-5. **启动服务**
+## 相关地址
+
+### 服务端
+
+- [CNB](https://cnb.cool/mliev/dwz/dwz-server)
+- [GitHub](https://github.com/muleiwu/dwz-server)
+- [Gitee](https://gitee.com/muleiwu/dwz-server)
+
+### 管理端
+
+- [CNB](https://cnb.cool/mliev/dwz/dwz-admin-webui)
+- [GitHub](https://github.com/muleiwu/dwz-admin-webui)
+- [Gitee](https://gitee.com/muleiwu/dwz-admin-webui)
+
+### 文档与交流
+
+- [木雷短网址 v2.22.3 完整文档](https://mdoc.cc/mliev/dwz/v2.22.3)
+- [产品介绍](https://mdoc.cc/mliev/dwz/v2.22.3/222) · [快速入门](https://mdoc.cc/mliev/dwz/v2.22.3/223) · [管理后台操作指南](https://mdoc.cc/mliev/dwz/v2.22.3/225)
+- [部署与运维配置](https://mdoc.cc/mliev/dwz/v2.22.3/224) · [宝塔面板安装教程](https://mdoc.cc/mliev/dwz/v2.22.3/335)
+- [API 与系统集成](https://mdoc.cc/mliev/dwz/v2.22.3/226) · [开发与架构](https://mdoc.cc/mliev/dwz/v2.22.3/249) · [常见问题](https://mdoc.cc/mliev/dwz/v2.22.3/228)
+- QQ 群：`1021660914`（[点击加入](https://n3.ink/lmKc)）
+
+## 参与贡献
+
+欢迎提交问题、改进文档、补充测试或发起 Pull Request。提交代码前请至少执行：
+
 ```bash
-go run main.go
+gofmt -w <修改的 Go 文件>
+go test ./...
 ```
 
-6. **验证服务**
-```bash
-# 健康检查
-curl http://localhost:8080/health
+请不要修改已经发布的历史迁移；新的结构变更需要在三个数据库方言目录中添加同名迁移文件。
 
-# API测试
-curl -X POST http://localhost:8080/api/v1/short_links \
-  -H "Content-Type: application/json" \
-  -d '{"original_url": "https://example.com"}'
-```
+## 许可证
 
-### Docker 部署
+版权所有 © 2025 合肥木雷坞信息技术有限公司。项目允许在许可协议范围内用于商业或非商业场景，但要求保留版权标识，并限制再授权和派生版本再分发。完整条款以 [LICENSE](LICENSE) 为准。
 
-```bash
-# 构建镜像
-docker build -t dwz-server .
-
-# 运行容器
-docker run -d \
-  --name dwz-server \
-  -p 8080:8080 \
-  -v /path/to/config.yaml:/app/config.yaml \
-  dwz-server
-```
-
-## 📖 API 文档
-
-### 基础信息
-- **基础URL**: `http://localhost:8080`
-- **内容类型**: `application/json`
-- **认证方式**: Bearer Token
-
-### 主要接口
-
-#### 短链接管理
-```bash
-# 创建短链接
-POST /api/v1/short_links
-{
-  "original_url": "https://example.com",
-  "domain": "dwz.do",
-  "custom_code": "abc123"
-}
-
-# 获取短链接列表
-GET /api/v1/short_links?page=1&page_size=10
-
-# 获取短链接详情
-GET /api/v1/short_links/{id}
-
-# 更新短链接
-PUT /api/v1/short_links/{id}
-
-# 删除短链接
-DELETE /api/v1/short_links/{id}
-```
-
-#### 用户管理
-```bash
-# 用户登录
-POST /api/v1/login
-{
-  "username": "admin",
-  "password": "admin123"
-}
-
-# 创建用户
-POST /api/v1/users
-{
-  "username": "newuser",
-  "password": "password123",
-  "email": "user@example.com"
-}
-```
-
-#### AB测试
-```bash
-# 创建AB测试
-POST /api/v1/ab_tests
-{
-  "short_link_id": 1,
-  "name": "按钮颜色测试",
-  "variants": [
-    {
-      "name": "红色按钮",
-      "target_url": "https://example.com/red"
-    },
-    {
-      "name": "蓝色按钮", 
-      "target_url": "https://example.com/blue"
-    }
-  ]
-}
-
-# 获取AB测试统计
-GET /api/v1/ab_tests/{id}/statistics
-
-# 上报AB测试转化反馈（目标URL会带上 _dwz_abt 参数）
-POST /api/v1/public/ab_test_feedback
-{
-  "feedback_token": "<_dwz_abt 参数值>",
-  "event_id": "order-202401150001",
-  "value": 99.9,
-  "currency": "CNY",
-  "metadata": {
-    "plan": "pro"
-  }
-}
-```
-
-A/B 测试反馈流程：
-
-1. 用户访问短链，命中运行中的 A/B 测试后会被分流到某个变体目标 URL。
-2. 系统会在目标 URL 上追加 `_dwz_abt` 参数，该参数是短期签名 token，绑定工作区、实验、变体、短链和会话。
-3. 落地页或业务系统在注册、下单、购买等业务结果发生后调用 `POST /api/v1/public/ab_test_feedback`。
-4. `event_id` 在同一个 A/B 测试内幂等，重复回传不会重复计入转化。
-5. 管理端 A/B 测试统计弹窗里的“分流反馈”区域仅用于手动验证；生产环境应由落地页自动回传。
-
-落地页自动回传示例：
-
-```js
-const token = new URLSearchParams(location.search).get('_dwz_abt');
-
-if (token) {
-  await fetch('https://your-domain.com/api/v1/public/ab_test_feedback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      feedback_token: token,
-      event_id: 'order-202401150001',
-      value: 99.9,
-      currency: 'CNY',
-      metadata: {
-        order_id: '202401150001',
-        plan: 'pro',
-      },
-    }),
-  });
-}
-```
-
-详细的API文档请参考 [API.md](temp/docs/API.md)
-
-## 🔧 配置说明
-
-### 配置文件结构
-
-#### 独立模式配置（推荐新手）
-```yaml
-server:
-  mode: release
-  addr: ":8080"
-
-# 数据库配置 - SQLite（无需外部数据库）
-database:
-  driver: sqlite
-  filepath: "./config/sqlite.db"
-
-# 缓存配置 - 内存缓存（无需Redis）
-cache:
-  driver: local
-
-# ID生成器配置 - 本地模式（无需Redis）
-id_generator:
-  driver: local
-
-# 短链接配置
-shortlink:
-  domain: "dwz.do"
-  length: 6
-  custom_length: true
-
-# JWT配置
-jwt:
-  secret: "your-secret-key-change-this"
-  expire_hours: 24
-```
-
-#### 完整模式配置（生产环境）
-```yaml
-server:
-  mode: release
-  addr: ":8080"
-
-# 数据库配置 - MySQL/PostgreSQL
-database:
-  driver: mysql  # 或 postgresql
-  host: "localhost"
-  port: 3306
-  username: "root"
-  password: "password"
-  dbname: "dwz_db"
-
-# Redis配置
-redis:
-  host: "localhost"
-  port: 6379
-  password: ""
-  db: 0
-  pool_size: 10
-  min_idle_conns: 5
-
-# 缓存配置 - Redis
-cache:
-  driver: redis
-
-# ID生成器配置 - Redis
-id_generator:
-  driver: redis
-
-# 短链接配置
-shortlink:
-  domain: "dwz.do"
-  length: 6
-  custom_length: true
-
-# JWT配置
-jwt:
-  secret: "your-secret-key-change-this"
-  expire_hours: 24
-
-# 中间件配置
-middleware:
-  operation_log:
-    enable: true
-    max_request_size: 1048576
-    sensitive_fields: ["password", "token"]
-    async_logging: true
-```
-
-### 环境变量
-
-#### 通用配置
-- `SERVER_ADDR`: 服务端口 (默认: :8080)
-- `SERVER_MODE`: 运行模式 (debug/release/test)
-
-#### 数据库配置
-- `DATABASE_DRIVER`: 数据库类型 (mysql/postgresql/sqlite)
-- `DATABASE_HOST`: 数据库主机 (SQLite不需要)
-- `DATABASE_PORT`: 数据库端口 (SQLite不需要)
-- `DATABASE_USERNAME`: 数据库用户名 (SQLite不需要)
-- `DATABASE_PASSWORD`: 数据库密码 (SQLite不需要)
-- `DATABASE_NAME`: 数据库名称 (SQLite不需要)
-- `DATABASE_FILEPATH`: SQLite文件路径 (仅SQLite需要)
-
-#### 缓存配置
-- `CACHE_DRIVER`: 缓存驱动 (redis/local)
-
-#### ID生成器配置
-- `ID_GENERATOR_DRIVER`: ID生成器驱动 (redis/local)
-
-#### Redis配置（仅当使用Redis时）
-- `REDIS_HOST`: Redis主机
-- `REDIS_PORT`: Redis端口
-- `REDIS_PASSWORD`: Redis密码
-- `REDIS_DB`: Redis数据库编号
-
-#### 短链接配置
-- `SHORTLINK_DOMAIN`: 短链接域名
-- `SHORTLINK_LENGTH`: 短码长度
-- `SHORTLINK_CUSTOM_LENGTH`: 是否允许自定义长度
-
-#### JWT配置
-- `JWT_SECRET`: JWT密钥
-- `JWT_EXPIRE_HOURS`: JWT过期时间（小时）
-
-## 🔍 性能特点
-
-### 高性能设计
-- **并发优化**: 支持高并发访问，经过性能测试验证
-- **缓存策略**: 多级缓存机制，提升响应速度
-- **异步处理**: 统计记录异步处理，不影响主流程性能
-- **连接池**: 数据库连接池优化，减少连接开销
-
-### 性能基准
-- **响应时间**: 平均响应时间 < 10ms
-- **并发处理**: 支持万级并发请求
-- **吞吐量**: 单实例支持 10,000+ QPS
-- **可扩展性**: 支持水平扩展，多实例部署
-
-## 🛡️ 安全特性
-
-### 数据安全
-- **敏感信息脱敏**: 自动脱敏密码、Token等敏感信息
-- **访问控制**: 基于Token的访问控制机制
-- **操作审计**: 完整的操作日志记录
-- **数据加密**: 敏感数据加密存储
-
-### 系统安全
-- **防刷机制**: 防止恶意刷取短链接
-- **访问限制**: 支持IP访问频率限制
-- **输入验证**: 严格的输入参数验证
-- **错误处理**: 安全的错误信息返回
-
-## 📊 监控与运维
-
-### 健康检查
-```bash
-# 详细健康检查
-GET /health
-
-# 简单健康检查
-GET /health/simple
-```
-
-### 日志管理
-- **结构化日志**: JSON格式日志输出
-- **日志级别**: 支持不同级别日志配置
-- **日志轮转**: 自动日志文件轮转
-- **监控集成**: 支持主流监控系统集成
-
-### 性能监控
-- **实时监控**: 实时性能指标监控
-- **告警机制**: 异常情况自动告警
-- **性能分析**: 详细的性能分析报告
-- **容量规划**: 基于历史数据的容量规划
-
-## 🤝 参与贡献
-
-我们欢迎所有形式的贡献，包括但不限于：
-
-- 🐛 Bug 报告
-- 🆕 功能建议
-- 📝 文档改进
-- 🔧 代码优化
-- 🧪 测试用例
-
-### 开发指南
-
-1. **Fork 项目**
-2. **创建功能分支** (`git checkout -b feature/amazing-feature`)
-3. **提交更改** (`git commit -m 'Add amazing feature'`)
-4. **推送到分支** (`git push origin feature/amazing-feature`)
-5. **创建 Pull Request**
-
-### 代码规范
-- 遵循 Go 官方代码规范
-- 使用 `gofmt` 格式化代码
-- 编写单元测试
-- 添加必要的注释
-
-详细的开发指南请参考 [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## 📄 许可证
-
-本项目可以二次开发用于商业用途，但是禁止发布衍生版本。具体见 [授权协议](LICENSE)
-
-## 🙏 致谢
-
-感谢所有贡献者的努力和开源社区的支持！
-
-
-### 贡献者
-
-- 小谈谈 [@bh1xaq](https://cnb.cool/bh1xaq)
-
-⭐ 如果这个项目对您有帮助，请给我们一个星标！
+感谢贡献者 [@bh1xaq](https://cnb.cool/bh1xaq) 对项目的帮助。
